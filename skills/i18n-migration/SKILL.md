@@ -22,6 +22,13 @@ Scan the codebase for signs of the current provider. This step is essential beca
 | **AWS Translate** | `@aws-sdk/client-translate`, `TranslateClient` |
 | **Generic** | Any custom translation API calls, TMX/CSV files with translations |
 
+**Automated detection**: Run `scripts/detect_provider.py` in the project root — it returns JSON with the detected provider, library, env vars found, and API call file locations.
+
+Once detected, read the relevant provider-specific reference for detailed rewrite instructions:
+- `references/deepl.md` — DeepL SDK replacement, glossary conversion, language code mapping
+- `references/google.md` — Google Cloud Translation v2/v3 replacement
+- `references/lokalise.md` — Lokalise key-management migration, architectural differences
+
 Report findings before making changes:
 - Current provider and library version
 - How translations are triggered (runtime API calls, CI/CD, manual export)

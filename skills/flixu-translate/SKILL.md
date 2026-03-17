@@ -12,6 +12,11 @@ Full translation workflow using the Flixu API. Detects file format, selects the 
 - `FLIXU_API_KEY` environment variable set (or ask the developer for their key)
 - The API key needs the `translate` scope
 
+## Bundled tools
+
+- **`scripts/translate.py`** — Translates JSON locale files directly via the Flixu API. Handles nested JSON flattening/unflattening automatically. Usage: `python scripts/translate.py messages/en.json "de,fr,es"`
+- **`references/formats.md`** — Read for details on what each file format preserves (XLIFF metadata, PO plurals, SRT timestamps, etc.)
+
 ## Workflow
 
 ### Step 1: Determine what to translate

@@ -7,6 +7,12 @@ description: Manage translation assets — glossaries, translation memories, and
 
 Manage translation assets — Glossaries, Translation Memories, and Brand Voices — via the Flixu platform. These assets are what transform generic AI translations into brand-consistent, terminology-accurate output. Without them, every translation is independent; with them, the system learns and improves over time.
 
+## Detailed references
+
+For deep-dive guidance on specific asset types, read the relevant reference:
+- **`references/glossary.md`** — CSV format spec, naming conventions, what to/not to glossarize, review cycles
+- **`references/brand-voice.md`** — Per-market voice profiles, natural language vs structured creation, formality rules by country
+
 ## When to use which asset
 
 | Asset | Purpose | When to create | Impact |

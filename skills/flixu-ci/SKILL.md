@@ -17,6 +17,10 @@ Ask the developer these questions — the answers determine which template to us
 4. **Do you want a separate PR or commit to the same branch?**
 5. **What quality threshold should block merging?** (e.g., 95% coverage)
 
+## Bundled tools
+
+- **`scripts/generate_workflow.py`** — Generates workflow files from parameters. Usage: `python scripts/generate_workflow.py --platform github --source messages/en.json --langs "de,fr,es"`. Writes the file directly to `.github/workflows/` or `.gitlab-ci-translate.yml`. Use `--dry-run` to preview without writing.
+
 ## Workflow templates
 
 ### GitHub Actions — Auto-translate on push

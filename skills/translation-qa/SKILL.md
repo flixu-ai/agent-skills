@@ -7,6 +7,10 @@ description: Audit translation quality and find localization issues in your code
 
 Scan a codebase for localization issues: missing translations, duplicate keys, inconsistent interpolations, hardcoded strings, and translation quality problems. Produce a structured report with actionable fix suggestions.
 
+## Bundled tools
+
+- **`scripts/audit_keys.py`** — Automated key comparison and interpolation validation. Run it directly for deterministic results: `python scripts/audit_keys.py messages/en.json messages/`. Returns both a human-readable report and a JSON file for programmatic use. Use this script for Steps 2 and 3 below — it's faster and more accurate than manual comparison.
+
 ## Audit workflow
 
 ### Step 1: Detect i18n setup

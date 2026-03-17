@@ -23,6 +23,8 @@ Before starting, detect the framework by checking the workspace for these signal
 
 If you can't detect the framework, ask the developer — picking the wrong library leads to wasted setup work.
 
+**Automated detection**: Run `scripts/detect_framework.py` in the project root — it returns JSON with the detected framework, library, and existing locale file paths. This eliminates guesswork.
+
 ## Key architecture decisions
 
 ### Directory structure matters
