@@ -1,125 +1,132 @@
 ---
 name: flixu-assets
-description: Manage translation assets — glossaries, translation memories, and brand voices — using the Flixu platform. Use this skill when a developer asks to "create a glossary", "import translation memory", "set up TM", "import TMX", "configure brand voice", "manage translation assets", "add terminology", "create term base", or needs guidance on translation asset strategy (when to use TMs vs glossaries, how many to create, etc.). Also triggers on mentions of "glossary terms", "brand tone", "terminology management", "translation reuse", or even "my translations are inconsistent" — because inconsistent translations are usually a sign that glossaries or brand voice profiles are needed.
+description: Manage translation assets — glossaries, translation memories, and brand voices — on the Flixu platform. Use when a developer asks to "create a glossary", "import TM", "set up translation memory", "configure brand voice", or "add terminology". Also triggers on "inconsistent translations", "glossary terms", or "translation reuse". Do NOT use for translating content (use flixu-translate) or i18n setup (use i18n-setup).
+metadata:
+  author: Flixu AI
+  version: 1.0.0
+  category: localization
+  tags: [glossary, translation-memory, brand-voice, assets, terminology]
 ---
 
 # Flixu Assets
 
-Manage translation assets — Glossaries, Translation Memories, and Brand Voices — via the Flixu platform. These assets are what transform generic AI translations into brand-consistent, terminology-accurate output. Without them, every translation is independent; with them, the system learns and improves over time.
+Manage translation assets — Glossaries, Translation Memories, and Brand Voices — via the Flixu platform. These assets transform generic AI translations into brand-consistent, terminology-accurate output.
 
 ## Detailed references
 
-For deep-dive guidance on specific asset types, read the relevant reference:
+For deep-dive guidance on specific asset types:
 - **`references/glossary.md`** — CSV format spec, naming conventions, what to/not to glossarize, review cycles
 - **`references/brand-voice.md`** — Per-market voice profiles, natural language vs structured creation, formality rules by country
 
-## When to use which asset
+## Instructions
 
-| Asset | Purpose | When to create | Impact |
-|-------|---------|----------------|--------|
-| **Glossary** | Enforce exact terminology | When you have terms that must be translated a specific way (brand names, product features, legal terms) | Terminology consistency |
-| **Translation Memory (TM)** | Reuse previous translations | Builds automatically from approved translations — no action needed to start | Cost savings + consistency |
-| **Brand Voice** | Enforce tone and style | When translations should sound a specific way (formal/informal, playful/serious) | Brand consistency |
-
-## Asset strategy recommendations
-
-Different project stages need different asset strategies — starting with too much overhead slows you down, but too little leads to inconsistency at scale:
+### Step 1: Assess the project's asset needs
 
 | Stage | Recommended assets |
 |-------|-------------------|
-| **Getting started** (< 1K strings) | 1 glossary with core terms (brand name, product features, key UI labels) |
-| **Growing** (1K–10K strings) | 1 glossary + TM (auto-builds from translations) |
-| **Established** (10K+ strings) | Multiple glossaries per domain + TM + brand voice |
-| **Enterprise** (multi-product) | Glossary per product + shared TM + brand voice per market |
+| Getting started (< 1K strings) | 1 glossary with core terms |
+| Growing (1K–10K strings) | 1 glossary + TM (auto-builds) |
+| Established (10K+ strings) | Multiple glossaries per domain + TM + brand voice |
+| Enterprise (multi-product) | Glossary per product + shared TM + brand voice per market |
 
-## Managing glossaries
+Expected output: Recommended asset strategy based on project size.
 
-### Creating a glossary
+### Step 2: Create glossary (if needed)
 
-Navigate to **Assets → Glossaries → Create Glossary** at [app.flixu.ai](https://app.flixu.ai).
+Navigate to **Assets → Glossaries → Create Glossary** at app.flixu.ai.
 
-Name it by domain (e.g., "Medical Terms", "E-commerce UI", "Legal") — not by language pair, because one glossary can serve multiple target languages.
+Name by domain ("Medical Terms", "E-commerce UI"), not by language pair.
 
-### Importing from CSV
-
-**Example:**
-Input: "Create a glossary for my e-commerce app with German translations"
-Output: Prepare this CSV format:
-
+For bulk import, prepare a CSV:
 ```csv
 source_term,target_term,source_lang,target_lang,notes
 Submit,Absenden,en,de,Button text - imperative form
-Cancel,Abbrechen,en,de,Button text
 Dashboard,Dashboard,en,de,Keep English - brand term
-Invoice,Rechnung,en,de,Financial context
-Add to cart,In den Warenkorb,en,de,E-commerce action
 ```
 
-Import at: **Assets → Glossary → Import CSV**
+Import at **Assets → Glossary → Import CSV**.
 
-### Glossary best practices
+For detailed guidance, read `references/glossary.md`.
 
-- **Be specific**: "Submit" → "Absenden" (imperative) is better than "Submit" → "Einreichen" (ambiguous)
-- **Include context in notes**: "Bank" could mean financial institution or river bank — the note disambiguates
-- **Don't over-glossarize**: Only terms that genuinely need enforcement. Over-constraining the AI reduces natural fluency
-- **Separate by domain**: Legal terms in one glossary, UI terms in another — you may want different glossaries for different projects
-- **Review regularly**: Remove outdated terms, add new product features
+Expected output: Glossary created and populated with core terms.
 
-## Managing Translation Memory
+### Step 3: Set up Translation Memory (if needed)
 
-### How TM works
+TM builds automatically — no manual setup required:
+1. Every approved translation is stored
+2. Future translations are compared via semantic vector search
+3. Close matches (≥85%) are suggested as AI context
+4. Exact matches (100%) skip the AI pipeline — zero cost
 
-TM builds automatically from your translations — no manual setup needed:
+For importing from another provider, export as TMX and import at **Assets → Translation Memory → Import TMX**.
 
-1. Every approved translation is stored as a TM entry with its source text
-2. New translations are compared against TM via semantic vector search
-3. Close matches (≥85% similarity) are provided to the AI as context — improving consistency
-4. Exact matches (100%) skip the AI pipeline entirely — zero cost, instant response
+Expected output: TM active and accumulating entries from translations.
 
-### Importing from TMX
+### Step 4: Create Brand Voice profile (if needed)
 
-If migrating from another provider (use the `i18n-migration` skill for the full workflow):
+Navigate to **Assets → Brand Voices → Create** at app.flixu.ai.
 
-1. Export from your previous tool as TMX format
-2. Navigate to **Assets → Translation Memory → Import TMX**
-3. Select the TMX file and confirm language pairs
-
-### TM best practices
-
-- **Let it grow naturally**: TM builds from your translations — no need to pre-populate unless migrating
-- **Approve quality translations**: Only approved translations enter the TM, so the quality threshold stays high
-- **Clean periodically**: Remove entries when terminology changes (e.g., product rebranding)
-- **Don't mix unrelated domains**: A medical TM shouldn't influence e-commerce translations
-
-## Managing Brand Voice
-
-### Creating a profile
-
-Navigate to **Assets → Brand Voices → Create** at [app.flixu.ai](https://app.flixu.ai).
-
-| Attribute | Options | Example |
-|-----------|---------|---------|
-| **Formality** | Formal / Informal / Neutral | "Use 'Sie' in German, 'vous' in French" |
-| **Tone** | Professional / Friendly / Playful / Serious | "Warm and approachable, never corporate jargon" |
-| **Style** | Concise / Descriptive / Technical / Conversational | "Short, action-oriented sentences for UI" |
-| **Anti-patterns** | What to avoid | "Never say 'click here'" |
-
-### Auto-generated profiles
-
-**Example:**
-Input: "Set up a brand voice — we're a developer tools company, casual tone, use 'du' in German"
-Output: Describe your brand in natural language at the Create Brand Voice screen:
-
+Describe the brand in natural language:
 ```
-We're a developer tools company. Our tone is friendly but technical.
-We use 'you' and avoid corporate speak. For German, use informal 'du'
-form. Keep UI strings under 40 characters where possible.
+We're a developer tools company. Friendly but technical tone.
+Use informal "du" in German, "tu" in French.
+Never use corporate jargon like "leverage" or "synergy".
 ```
 
-Flixu generates a structured voice profile from this description.
+Flixu generates structured rules from this description.
 
-### Brand voice best practices
+For per-market profiles and detailed options, read `references/brand-voice.md`.
 
-- **One voice per market**: German customers might expect formal tone, while US customers prefer casual — create separate profiles
-- **Include anti-patterns**: "Never say 'click here'" is as useful as "Say 'select'" — the AI needs to know what to avoid
-- **Test with samples**: Translate 10 representative strings and review before applying globally
+Expected output: Brand voice profile created and applied to all future translations.
+
+## Examples
+
+### Example 1: Set up glossary for an e-commerce app
+
+User says: "Create a glossary for my e-commerce app with German translations"
+
+Actions:
+1. Assess: growing app (< 10K strings) → recommend 1 glossary + TM
+2. Create CSV with core terms: Submit → Absenden, Add to cart → In den Warenkorb
+3. Guide import at Assets → Glossary → Import CSV
+
+Result: Glossary "E-commerce UI" created with 15 core terms. Future translations use these terms.
+
+### Example 2: Fix inconsistent translations
+
+User says: "My translations are inconsistent — 'workspace' gets translated differently each time"
+
+Actions:
+1. Identify this as a glossary problem
+2. Create glossary entry: "workspace" → "Arbeitsbereich" (de), with note "Always use this term"
+3. Explain how the glossary enforces consistency in future translations
+
+Result: Glossary entry created. All future translations of "workspace" consistently use "Arbeitsbereich".
+
+### Example 3: Set up formal German brand voice
+
+User says: "Our German translations should use the formal 'Sie' form"
+
+Actions:
+1. Create a Brand Voice profile for the German market
+2. Set formality to "formal", include rule: "Always use 'Sie' form"
+3. Recommend testing with 10 sample translations
+
+Result: Brand voice profile active. All German translations use formal "Sie" form.
+
+## Troubleshooting
+
+### Error: Glossary terms not appearing in translation output
+
+Cause: Glossary not attached to the translation request.
+Solution: Include `glossary_ids` parameter in the translation API call. Use the `flixu-translate` skill which handles this automatically.
+
+### Error: Brand voice produces unexpected tone
+
+Cause: Conflicting rules in the profile description.
+Solution: Keep rules to 3-5 clear statements. Contradictory rules (e.g., "be casual" + "use formal pronouns") confuse the AI.
+
+### Error: TM not matching similar strings
+
+Cause: TM is still building — needs more approved translations.
+Solution: TM improves with volume. After 100+ translations, match rates increase significantly.

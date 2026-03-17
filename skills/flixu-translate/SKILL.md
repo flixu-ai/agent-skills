@@ -1,6 +1,11 @@
 ---
 name: flixu-translate
-description: Translate text, i18n files, and documents using the Flixu API. Use this skill whenever a developer asks to "translate", "localize", "convert to German/French/Spanish", "translate this file", "translate my i18n keys", "localize my strings", "batch translate", or wants to translate any content — text, JSON, YAML, PO, XLIFF, DOCX, or other files — to another language. Also triggers on "flixu translate", "run translation", or any request involving converting content between natural languages. Even if the developer just says "make this work in German" or "we need a Spanish version", use this skill.
+description: Translate text, JSON, YAML, XLIFF, PO, DOCX, and other files using the Flixu API. Use when a developer asks to "translate", "localize", "convert to German", "translate this file", "batch translate", or wants content in another language. Also triggers on "flixu translate", "run translation", or "make this work in Spanish". Do NOT use for setting up i18n architecture (use i18n-setup) or auditing existing translations (use translation-qa).
+metadata:
+  author: Flixu AI
+  version: 1.0.0
+  category: localization
+  tags: [translation, localization, api, batch, document]
 ---
 
 # Flixu Translate
@@ -9,62 +14,59 @@ Full translation workflow using the Flixu API. Detects file format, selects the 
 
 ## Prerequisites
 
-- `FLIXU_API_KEY` environment variable set (or ask the developer for their key)
-- The API key needs the `translate` scope
+- `FLIXU_API_KEY` environment variable set
+- API key needs the `translate` scope
 
 ## Bundled tools
 
-- **`scripts/translate.py`** — Translates JSON locale files directly via the Flixu API. Handles nested JSON flattening/unflattening automatically. Usage: `python scripts/translate.py messages/en.json "de,fr,es"`
-- **`references/formats.md`** — Read for details on what each file format preserves (XLIFF metadata, PO plurals, SRT timestamps, etc.)
+- **`scripts/translate.py`** — Translates JSON locale files directly. Usage: `python scripts/translate.py messages/en.json "de,fr,es"`. Handles nested JSON flattening/unflattening automatically.
+- **`references/formats.md`** — Details on what each file format preserves (XLIFF metadata, PO plurals, SRT timestamps).
 
-## Workflow
+## Instructions
 
 ### Step 1: Determine what to translate
 
-Detect the input type — this determines which API endpoint to use, because each endpoint is optimized for different content sizes and structures:
+| Input type | Detection | Endpoint |
+|-----------|-----------|----------|
+| Inline text | No file path, raw text | `POST /v1/translate` |
+| JSON/YAML i18n file | `.json`, `.yaml` with key-value structure | `POST /v1/translate/batch` |
+| PO/XLIFF/.strings/DOCX/SRT | Structured document formats | `POST /v1/translate/document` |
 
-| Input type | How to detect | Endpoint | Why this one |
-|-----------|---------------|----------|-------------|
-| Inline text / string | No file path, raw text in prompt | `POST /v1/translate` | Lowest latency for short content |
-| JSON/YAML i18n file | `.json`, `.yaml`, `.yml` with key-value structure | `POST /v1/translate/batch` | Preserves key structure, handles multiple target langs in one call |
-| PO/POT file | `.po`, `.pot` with msgid/msgstr | `POST /v1/translate/document` | Preserves format-specific constructs (plural forms, contexts) |
-| XLIFF/XLF | `.xliff`, `.xlf` | `POST /v1/translate/document` | Maintains translation units and metadata |
-| DOCX/TXT/HTML/SRT | `.docx`, `.txt`, `.html`, `.srt`, `.vtt` | `POST /v1/translate/document` | Full document reconstruction in original format |
-| iOS .strings | `.strings` | `POST /v1/translate/document` | Preserves key-value pair format |
+For format-specific details, read `references/formats.md`.
 
-### Step 2: Detect source and target languages
+Expected output: Identified input type and target endpoint.
 
-- If the developer specifies languages, use those
-- If the source language is unclear, analyze the content or ask
-- ISO 639-1 codes: `en`, `de`, `fr`, `es`, `zh`, `ja`, `ko`, `ar`, `pt`, `ru`, etc.
+### Step 2: Detect languages
+
+- Use developer-specified languages if provided
+- ISO 639-1 codes: `en`, `de`, `fr`, `es`, `zh`, `ja`, `ko`, `ar`, `pt`, `ru`
+- If source language is unclear, analyze content or ask
 
 ### Step 3: Execute translation
 
-**Example 1 — single text:**
-Input: "translate 'Welcome to our platform' to German"
-Output:
+**Text** (`POST /v1/translate`):
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Welcome to our platform", "source_lang": "en", "target_lang": "de"}'
+  -d '{"text": "Welcome", "source_lang": "en", "target_lang": "de"}'
 ```
-→ Response: `{ "data": { "translation": "Willkommen auf unserer Plattform", "quality_score": 96 }, "meta": { ... } }`
 
-**Example 2 — batch i18n file:**
-Input: "translate my en.json to German and French"
-Output: Read `en.json`, extract key-value pairs, call:
+Expected output: `{ "data": { "translation": "Willkommen", "quality_score": 96 }, "meta": { ... } }`
+
+**Batch** (`POST /v1/translate/batch`):
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate/batch \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"strings": {"greeting": "Hello", "farewell": "Goodbye"}, "source_lang": "en", "target_langs": ["de", "fr"]}'
+  -d '{"strings": {"greeting": "Hello"}, "source_lang": "en", "target_langs": ["de", "fr"]}'
 ```
-→ Response: `{ "data": { "translations": { "de": { "greeting": "Hallo", ... }, "fr": { ... } } } }`
 
-**Example 3 — document file:**
-Input: "translate this XLIFF file to Japanese"
-Output:
+Expected output: `{ "data": { "translations": { "de": { "greeting": "Hallo" }, "fr": { ... } } } }`
+
+For JSON locale files, prefer running `scripts/translate.py` — it handles flattening, API calls, and file writing in one step.
+
+**Document** (`POST /v1/translate/document`):
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate/document \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
@@ -72,54 +74,70 @@ curl -X POST https://api.flixu.ai/v1/translate/document \
   -F "source_lang=en" \
   -F "target_lang=ja"
 ```
-→ Response includes `file_data` (base64) — decode and write to disk.
+
+Expected output: Response with `file_data` (base64) to decode and write.
 
 ### Step 4: Write output files
 
-Write the output to the correct locale directory based on the framework:
-
-| Framework | Output path pattern |
-|-----------|-------------------|
+| Framework | Output path |
+|-----------|-------------|
 | Next.js (next-intl) | `messages/{locale}.json` |
 | React (react-i18next) | `public/locales/{locale}/translation.json` |
 | Flutter | `lib/l10n/app_{locale}.arb` |
-| Rails | `config/locales/{locale}.yml` |
 | iOS | `{locale}.lproj/Localizable.strings` |
-| Android | `app/src/main/res/values-{locale}/strings.xml` |
-| Generic | `locales/{locale}.{ext}` |
 
-For batch translations that return a flat key-value map, reconstruct the nested JSON structure if the source file used nested keys.
+Reconstruct nested JSON if the source used nested keys.
 
 ### Step 5: Report results
 
-After writing files, report:
-- Number of strings/characters translated
-- Quality scores (if available)
-- Credits used (from `meta.credits_used`)
-- File paths written
-- Any warnings (e.g., untranslated placeholders)
+Report: strings/chars translated, quality scores, credits used (`meta.credits_used`), file paths written, warnings.
 
-## Translation context
+### Optional: Translation context
 
-If the developer's organization has translation assets (glossaries, TMs, brand voices), including them significantly improves consistency — the AI uses glossary terms exactly and reuses approved TM matches:
-
+Include glossary/TM/brand voice for better consistency:
 ```json
 {
-  "text": "...",
-  "source_lang": "en",
-  "target_lang": "de",
-  "glossary_ids": ["gloss_abc123"],
-  "tm_id": "tm_def456",
-  "brand_voice_id": "bv_ghi789"
+  "glossary_ids": ["gloss_abc"],
+  "tm_id": "tm_def",
+  "brand_voice_id": "bv_ghi"
 }
 ```
 
-To find available assets, use the `flixu-assets` skill or call `GET /v1/quota`.
+## Examples
 
-## Error handling
+### Example 1: Translate a JSON locale file
 
-| Status | Action |
-|--------|--------|
-| `402` | Insufficient credits — tell the developer to top up at app.flixu.ai/settings/billing |
-| `429` | Rate limited — wait the number of seconds in `X-RateLimit-Reset` header, then retry |
-| `400` | Invalid input — double-check language codes (ISO 639-1) and ensure the file format is supported |
+User says: "Translate my en.json to German and French"
+
+Actions:
+1. Run `python scripts/translate.py messages/en.json "de,fr"`
+2. Script reads en.json, calls batch API, writes messages/de.json and messages/fr.json
+
+Result: Two new locale files with all keys translated, nested structure preserved.
+
+### Example 2: Translate inline text
+
+User says: "How do you say 'Your subscription has been renewed' in Japanese?"
+
+Actions:
+1. Call `POST /v1/translate` with source text
+2. Return translation with quality score
+
+Result: `"サブスクリプションが更新されました"` (quality_score: 94)
+
+## Troubleshooting
+
+### Error: 402 Payment Required
+
+Cause: Insufficient credits in the organization's account.
+Solution: Tell the developer to top up at app.flixu.ai/settings/billing.
+
+### Error: 429 Too Many Requests
+
+Cause: Plan rate limit exceeded.
+Solution: Wait the number of seconds in the `X-RateLimit-Reset` response header, then retry.
+
+### Error: 400 Bad Request
+
+Cause: Invalid language code or unsupported file format.
+Solution: Verify language codes are ISO 639-1 and file format is in the supported list (see `references/formats.md`).

@@ -1,88 +1,111 @@
 ---
 name: i18n-setup
-description: Set up internationalization (i18n) file structure, routing, and configuration for any framework. Use this skill whenever a developer asks to "add i18n", "set up localization", "internationalize my app", "add multi-language support", "configure next-intl", "set up react-i18next", "add translations to my app", or needs help structuring locale files, setting up translation routing, or choosing an i18n library. Also triggers on mentions of "locale", "messages directory", "translation files", or "language switching" in the context of project setup. Even if the developer just mentions "multi-language" or "support other languages" without explicitly saying "i18n", use this skill.
+description: Set up internationalization (i18n) file structure, routing, and configuration for any framework. Use when a developer asks to "add i18n", "set up localization", "internationalize my app", "add multi-language support", "configure next-intl", or "set up react-i18next". Also triggers on "locale files", "messages directory", "translation files", "language switching", or "support other languages". Do NOT use for translating existing files (use flixu-translate) or auditing translations (use translation-qa).
+metadata:
+  author: Flixu AI
+  version: 1.0.0
+  category: localization
+  tags: [i18n, localization, setup, next-intl, react-i18next, flutter, ios]
 ---
 
 # i18n Setup
 
-Set up a complete internationalization file structure for any framework. This skill handles library selection, directory structure, routing configuration, and initial locale scaffolding — so the developer starts with a production-ready i18n architecture from day one, rather than retrofitting it later (which is significantly harder).
+Set up a complete internationalization file structure for any framework. Handles library selection, directory structure, routing configuration, and initial locale scaffolding — so the developer starts with a production-ready i18n architecture from day one, rather than retrofitting it later.
 
-## Framework detection
+## Instructions
 
-Before starting, detect the framework by checking the workspace for these signals:
+### Step 1: Detect the framework
+
+Run `scripts/detect_framework.py` in the project root.
+
+Expected output: JSON with `framework`, `library`, and `locale_paths` fields.
+
+If the script can't detect the framework, check manually:
 
 | Signal | Framework | Reference |
 |--------|-----------|-----------|
 | `next.config.*` or `app/` directory | **Next.js** (App Router) | Read `references/nextjs.md` |
-| `next.config.*` + `pages/` directory | **Next.js** (Pages Router) | Read `references/nextjs.md` |
 | `vite.config.*` or `package.json` with `react` | **React** (Vite/CRA) | Read `references/react.md` |
 | `pubspec.yaml` with `flutter` | **Flutter** | Read `references/flutter.md` |
-| `Gemfile` with `rails` | **Ruby on Rails** | Read `references/rails.md` |
-| `*.xcodeproj` or `Package.swift` | **iOS/macOS (Swift)** | Read `references/ios.md` |
-| `build.gradle` with `android` | **Android** | Read `references/android.md` |
+| `*.xcodeproj` or `Package.swift` | **iOS/macOS** | Read `references/ios.md` |
 
-If you can't detect the framework, ask the developer — picking the wrong library leads to wasted setup work.
+If still unclear, ask the developer.
 
-**Automated detection**: Run `scripts/detect_framework.py` in the project root — it returns JSON with the detected framework, library, and existing locale file paths. This eliminates guesswork.
+### Step 2: Set up the i18n structure
 
-## Key architecture decisions
+Read the relevant reference file and follow its step-by-step procedure. Each reference contains the exact files to create, packages to install, and configuration needed.
 
-### Directory structure matters
+Expected output: All i18n config files created, locale directory with source language JSON/YAML/ARB file scaffolded.
 
-Locale files should live close to the project root, not nested inside `src/`, because:
-- CI/CD pipelines and translation tools need easy access
-- Build systems sometimes exclude deeply nested directories
-- Translators (human or API) need a predictable path
+### Step 3: Apply architecture best practices
 
-**Good**: `messages/en.json`, `locales/en.yml`, `lib/l10n/app_en.arb`
-**Avoid**: `src/app/utils/translations/data/en.json`
+**Directory structure**: Place locale files close to the project root (`messages/`, `locales/`, `lib/l10n/`). CI/CD pipelines and translation tools need predictable, accessible paths.
 
-### Namespace by feature, not by page
-
-Organize translation keys by domain/feature rather than routes — features span multiple pages, so feature-based namespacing prevents duplication:
-
-**Example 1:**
-Input: "I have a settings page with notification preferences and account settings"
-Output:
+**Namespace by feature**: Organize keys by domain, not by page:
 ```json
 {
   "settings": {
-    "title": "Settings",
-    "notifications": {
-      "email_digest": "Email digest",
-      "push_enabled": "Push notifications"
-    },
-    "account": {
-      "change_password": "Change password"
-    }
+    "notifications": { "email_digest": "Email digest" },
+    "account": { "change_password": "Change password" }
   }
 }
 ```
 
-### Avoid hardcoding locale lists
+**Single locale config**: Store supported locales in one file. Adding a new language should be a one-line change.
 
-Store supported locales in a single config file, not scattered across middleware, providers, and components. This makes adding a new language a one-line change.
+### Step 4: Handle RTL locales
 
-## Framework-specific setup
+If any target locale is RTL (Arabic `ar`, Hebrew `he`, Persian `fa`, Urdu `ur`):
+- Set `dir="rtl"` on `<html>` based on locale
+- Use CSS logical properties (`margin-inline-start` instead of `margin-left`)
+- Test with real RTL content early
 
-Read the relevant reference file for your framework. Each contains the complete setup procedure with all code files:
+### Step 5: Suggest next steps
 
-- `references/nextjs.md` — Next.js App Router with `next-intl` (recommended)
-- `references/react.md` — React/Vite with `react-i18next`
-- `references/flutter.md` — Flutter with ARB
-- `references/ios.md` — iOS/macOS with `.strings` / `.lproj`
+Once setup is complete, suggest:
+1. **Translate**: `flixu-translate` skill — "Translate my en.json to German and French"
+2. **Audit**: `translation-qa` skill — "Find missing translation keys"
+3. **Automate**: `flixu-ci` skill — "Create a GitHub Action that auto-translates on push"
 
-## RTL considerations
+## Examples
 
-If any target locale is RTL (Arabic `ar`, Hebrew `he`, Persian `fa`, Urdu `ur`), additionally:
-- Set `dir="rtl"` on the `<html>` element based on locale — text alignment, flexbox, and margins all depend on this
-- Use CSS logical properties (`margin-inline-start` instead of `margin-left`) — they automatically flip for RTL
-- Test layout with real RTL content early, not just mirrored Latin text
+### Example 1: Next.js app with three languages
 
-## After setup
+User says: "Set up i18n for my Next.js app with English, German, and Spanish"
 
-Once the i18n structure is in place, suggest the developer continue with these Flixu skills:
+Actions:
+1. Run `scripts/detect_framework.py` → detects Next.js App Router
+2. Read `references/nextjs.md`
+3. Install `next-intl`, create `messages/en.json`, `routing.ts`, `request.ts`, middleware, layout provider
+4. Scaffold `messages/de.json` and `messages/es.json` with same key structure
 
-1. **Translate**: Use the `flixu-translate` skill — "Translate my en.json to German and French"
-2. **Audit**: Use the `translation-qa` skill — "Find missing translation keys"
-3. **Automate**: Use the `flixu-ci` skill — "Create a GitHub Action that auto-translates on push"
+Result: Fully configured next-intl setup with 3 locale files and routing middleware.
+
+### Example 2: Existing React app
+
+User says: "My React app needs to support French"
+
+Actions:
+1. Run `scripts/detect_framework.py` → detects React with Vite
+2. Read `references/react.md`
+3. Install `react-i18next` stack, create `public/locales/en/translation.json` and `fr/translation.json`
+4. Create `src/i18n.ts` config, import in entry point
+
+Result: react-i18next configured with lazy-loaded locale files.
+
+## Troubleshooting
+
+### Error: "Module not found: next-intl"
+
+Cause: Package not installed or wrong import path.
+Solution: Run `npm install next-intl` and verify `next.config.ts` uses `createNextIntlPlugin`.
+
+### Error: Locale files not loading
+
+Cause: Import path mismatch between `request.ts` and actual `messages/` directory location.
+Solution: Check that the dynamic import path in `request.ts` resolves correctly relative to the file location.
+
+### Error: Middleware not intercepting routes
+
+Cause: `matcher` pattern in `middleware.ts` doesn't match the configured locales.
+Solution: Update the matcher regex to include all locale codes from `routing.ts`.
