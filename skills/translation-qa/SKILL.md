@@ -1,17 +1,17 @@
 ---
 name: translation-qa
-description: Audit translation quality and find localization issues in your codebase. Use this skill when a developer asks to "check translations", "find missing translations", "audit i18n", "validate locale files", "find untranslated strings", "check i18n quality", "scan for localization issues", "find duplicate translation keys", "validate interpolations", or any request involving checking the completeness, consistency, or quality of translations in a project. Also triggers on "translation coverage", "i18n audit", "missing keys", or "locale sync".
+description: Audit translation quality and find localization issues in your codebase. Use this skill when a developer asks to "check translations", "find missing translations", "audit i18n", "validate locale files", "find untranslated strings", "check i18n quality", "scan for localization issues", "find duplicate translation keys", "validate interpolations", or any request involving checking the completeness, consistency, or quality of translations in a project. Also triggers on "translation coverage", "i18n audit", "missing keys", "locale sync", or even just "are my translations complete?". If a developer seems worried about translation quality or consistency, this skill helps.
 ---
 
 # Translation QA
 
-Scan your codebase for localization issues: missing translations, duplicate keys, inconsistent interpolations, hardcoded strings, and translation quality problems.
+Scan a codebase for localization issues: missing translations, duplicate keys, inconsistent interpolations, hardcoded strings, and translation quality problems. Produce a structured report with actionable fix suggestions.
 
 ## Audit workflow
 
 ### Step 1: Detect i18n setup
 
-Identify the framework and locale file structure:
+Identify the framework and locale file structure — different frameworks store translations in different locations and formats:
 
 | Framework | Locale files location | Key format |
 |-----------|---------------------|------------|
@@ -24,15 +24,15 @@ Identify the framework and locale file structure:
 
 ### Step 2: Run completeness check
 
-Compare the source locale with all target locales:
+Compare the source locale with all target locales. Missing keys are the #1 cause of untranslated strings showing up in production:
 
-1. **Load source locale** (e.g., `en.json`) — extract all keys (flatten nested structures)
-2. **Load each target locale** — extract all keys
-3. **Find missing keys** — keys in source but not in target
-4. **Find extra keys** — keys in target but not in source (potentially orphaned)
-5. **Calculate coverage** — `(target keys / source keys) × 100%`
+1. Load source locale (e.g., `en.json`) — flatten to extract all leaf keys
+2. Load each target locale — flatten same way
+3. Find missing keys (source has, target doesn't)
+4. Find extra keys (target has, source doesn't — potentially orphaned)
+5. Calculate coverage: `(target keys / source keys) × 100%`
 
-Report format:
+**Output format — always use this template:**
 ```
 Translation Coverage Report
 ===========================
@@ -43,36 +43,25 @@ Source: en (423 keys)
 | de     | 418  | 5       | 0     | 98.8%    |
 | fr     | 401  | 22      | 0     | 94.8%    |
 | es     | 423  | 0       | 0     | 100%     |
-| ja     | 390  | 33      | 0     | 92.2%    |
 
 Missing keys in 'de':
   - settings.notifications.email_digest
   - settings.notifications.push_enabled
   - errors.payment.card_declined
-  - errors.payment.insufficient_funds
-  - pricing.enterprise.custom_quote
 ```
 
 ### Step 3: Validate interpolations
 
-Check that dynamic variables are consistent across locales:
+Check that dynamic variables are consistent across locales — a `{name}` in the source that becomes `{nom}` in the translation will cause a runtime crash:
 
+**Example:**
+Input: `en.json` has `"greeting": "Hello, {name}!"`, `de.json` has `"greeting": "Hallo, {nom}!"`
+Output:
 ```
-Interpolation Consistency Check
-================================
-Source: en
-
 ⚠ Mismatch in 'de':
   Key: greeting
   en: "Hello, {name}!"
   de: "Hallo, {nom}!"        ← '{nom}' should be '{name}'
-
-⚠ Missing variable in 'fr':
-  Key: items_count
-  en: "You have {count} items"
-  fr: "Vous avez des articles"  ← '{count}' is missing
-
-✓ All variables consistent in 'es' (423/423 keys)
 ```
 
 Variable patterns to check:
@@ -82,9 +71,9 @@ Variable patterns to check:
 - `%s`, `%d` — C-style printf
 - `${name}` — JavaScript template literals
 
-### Step 4: Find hardcoded strings in components
+### Step 4: Find hardcoded strings
 
-Scan source files for user-facing strings that aren't using the i18n library:
+Scan source files for user-facing strings that bypass the i18n system. These are invisible to translators and will never be localized:
 
 Patterns to flag:
 - String literals in JSX: `<h1>Welcome</h1>` → should be `<h1>{t('welcome')}</h1>`
@@ -92,14 +81,14 @@ Patterns to flag:
 - `title="Settings"` → should use translation function
 - Alert/confirm messages: `alert("Are you sure?")` → should use translation
 
-Exclusions (don't flag):
+Exclusions (don't flag these — they're intentionally not translated):
 - CSS class names, HTML attributes (`className`, `id`, `href`)
-- Console.log messages
-- Error codes and technical strings
+- Console.log messages (developer-only)
+- Error codes and technical identifiers
 - Single-character strings and numbers
 - Strings in test files
 
-Report as:
+**Output format:**
 ```
 Hardcoded Strings Found
 =======================
@@ -107,58 +96,47 @@ Hardcoded Strings Found
   <h1>Welcome back</h1>
   Suggestion: <h1>{t('header.welcome_back')}</h1>
 
-⚠ src/components/SearchBar.tsx:8
-  placeholder="Search products..."
-  Suggestion: placeholder={t('search.placeholder')}
-
 Found 12 hardcoded strings across 7 files.
 ```
 
-### Step 5: Quality analysis (optional, requires API key)
+### Step 5: Quality analysis (optional, requires FLIXU_API_KEY)
 
-If the developer has a Flixu API key, run quality analysis on existing translations:
+If the developer has a Flixu API key, sample 10-20 translations and run quality analysis:
 
 ```bash
 curl -X POST https://api.flixu.ai/v1/analyze/headless \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "text": "THE_TRANSLATED_TEXT",
-    "source_lang": "en",
-    "target_lang": "de"
-  }'
+  -d '{"text": "THE_TRANSLATED_TEXT", "source_lang": "en", "target_lang": "de"}'
 ```
 
-Report quality scores and risk signals for sampled translations.
+This returns quality scores and risk signals without consuming translation credits.
 
 ### Step 6: Generate summary report
 
-Compile all findings into a structured report:
-
+**Always end with this structured summary:**
 ```markdown
 # i18n Audit Report
 
 ## Summary
 - **Source locale**: en (423 keys)
-- **Target locales**: de, fr, es, ja
+- **Target locales**: de, fr, es
 - **Overall coverage**: 96.5%
 - **Interpolation issues**: 3
 - **Hardcoded strings**: 12
 - **Quality score avg**: 91/100
 
-## Action Items
-1. Add 5 missing keys to `de.json`
-2. Fix 3 interpolation mismatches
+## Action Items (priority order)
+1. Fix 3 interpolation mismatches (these cause runtime crashes)
+2. Add 22 missing keys to `fr.json`
 3. Extract 12 hardcoded strings to locale files
-4. Translate 33 missing keys for `ja.json`
 ```
 
-## Automated fix suggestions
+## Automated fixes
 
-For missing keys, suggest auto-generating them with the `flixu-translate` skill:
-
+For missing keys, suggest using the `flixu-translate` skill:
 ```
-"Translate the 5 missing keys from en to de"
+"Translate the 22 missing keys from en to French"
 ```
 
-For hardcoded strings, generate the extraction as a code diff.
+For hardcoded strings, generate code diffs that extract strings to the locale file and replace them with `t()` calls.

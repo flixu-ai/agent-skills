@@ -1,28 +1,38 @@
 ---
 name: flixu-ci
-description: Generate CI/CD pipeline configurations that automate translation on every push. Use this skill when a developer asks to "automate translations", "add translation to CI", "create GitHub Action for translation", "create GitLab CI for i18n", "auto-translate on push", "translation pipeline", "localization workflow automation", or any request involving automating the translation of locale files as part of a CI/CD workflow. Also triggers on "translation PR", "auto-localize", or "continuous localization".
+description: Generate CI/CD pipeline configurations that automate translation on every push. Use this skill when a developer asks to "automate translations", "add translation to CI", "create GitHub Action for translation", "create GitLab CI for i18n", "auto-translate on push", "translation pipeline", "localization workflow automation", or any request involving automating the translation of locale files as part of a CI/CD workflow. Also triggers on "translation PR", "auto-localize", "continuous localization", or even just "I don't want to manually translate anymore". If a developer has locale files and wants them auto-translated when the source changes, this is the right skill.
 ---
 
 # Flixu CI
 
-Generate CI/CD pipeline configurations that automatically translate new or changed strings when code is pushed.
+Generate CI/CD pipeline configurations that automatically translate new or changed strings when code is pushed. Supports GitHub Actions and GitLab CI.
+
+## Before generating
+
+Ask the developer these questions — the answers determine which template to use and how to customize it:
+
+1. **Where are your source locale files?** (e.g., `messages/en.json`, `locales/en.yml`)
+2. **Which languages do you want to translate to?** (e.g., `de`, `fr`, `es`, `ja`)
+3. **When should translations run?** (On push to main? On every PR? Manual dispatch?)
+4. **Do you want a separate PR or commit to the same branch?**
+5. **What quality threshold should block merging?** (e.g., 95% coverage)
 
 ## Workflow templates
 
 ### GitHub Actions — Auto-translate on push
 
-Create `.github/workflows/flixu-translate.yml`:
+**Example:**
+Input: "Create a GitHub Action that auto-translates messages/en.json to de and fr on push to main"
+Output: Create `.github/workflows/flixu-translate.yml`:
 
 ```yaml
 name: Flixu Auto-Translate
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
-      - 'messages/en.json'
-      - 'public/locales/en/**'
-      - 'locales/en.yml'
+      - 'messages/en.json'  # ← Adjust to your source locale path
 
 permissions:
   contents: write
@@ -37,21 +47,20 @@ jobs:
       - name: Detect changed strings
         id: changes
         run: |
-          # Compare source locale with previous commit
-          git diff HEAD~1 --name-only | grep -E '(messages/en\.json|locales/en|en\.ya?ml)' > changed_files.txt
+          git diff HEAD~1 --name-only | grep -E 'messages/en\.json' > changed_files.txt
           if [ -s changed_files.txt ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Translate changed files
+      - name: Translate to target locales
         if: steps.changes.outputs.has_changes == 'true'
         env:
           FLIXU_API_KEY: ${{ secrets.FLIXU_API_KEY }}
         run: |
-          # Read source locale and translate to all targets
-          TARGET_LANGS="de fr es ja"
+          # ← Adjust TARGET_LANGS to your needs
+          TARGET_LANGS="de fr"
 
           for lang in $TARGET_LANGS; do
             echo "Translating to $lang..."
@@ -74,19 +83,17 @@ jobs:
           commit-message: "chore(i18n): auto-translate updated strings"
           title: "🌐 Auto-translated strings"
           body: |
-            Automatically translated changed strings from `en` to target locales.
-
-            **Translated to**: de, fr, es, ja
-            **Trigger**: Push to `${{ github.ref_name }}`
-
+            Automatically translated changed strings from `en`.
             Please review translations before merging.
           branch: i18n/auto-translate
           labels: i18n, automated
 ```
 
-### GitHub Actions — Translation quality gate
+Adapt the `paths` trigger and `TARGET_LANGS` variable to match the developer's setup. If they use `public/locales/en/translation.json` instead of `messages/en.json`, update both the trigger path and the `cat` command.
 
-Add to your existing PR workflow in `.github/workflows/i18n-quality.yml`:
+### GitHub Actions — Quality gate for PRs
+
+Add this to existing PR workflows — it blocks merges when translation coverage drops below a threshold:
 
 ```yaml
 name: i18n Quality Gate
@@ -94,8 +101,7 @@ name: i18n Quality Gate
 on:
   pull_request:
     paths:
-      - 'messages/**'
-      - 'locales/**'
+      - 'messages/**'   # ← Adjust to your locale directory
 
 jobs:
   quality-check:
@@ -105,8 +111,9 @@ jobs:
 
       - name: Check translation coverage
         run: |
-          SOURCE="messages/en.json"
+          SOURCE="messages/en.json"  # ← Adjust
           SOURCE_KEYS=$(jq -r '[paths(scalars)] | length' "$SOURCE")
+          FAILED=false
 
           for file in messages/*.json; do
             locale=$(basename "$file" .json)
@@ -117,33 +124,14 @@ jobs:
 
             if (( $(echo "$COVERAGE < 95" | bc -l) )); then
               echo "::error::$locale coverage below 95%: $COVERAGE%"
-              exit 1
+              FAILED=true
             fi
           done
 
-      - name: Validate interpolations
-        run: |
-          # Check that all {variables} in source exist in translations
-          SOURCE="messages/en.json"
-          for file in messages/*.json; do
-            locale=$(basename "$file" .json)
-            [ "$locale" = "en" ] && continue
-
-            jq -r 'paths(scalars) as $p | "\($p | join("."))\t\(getpath($p))"' "$SOURCE" | while IFS=$'\t' read -r key value; do
-              source_vars=$(echo "$value" | grep -oP '\{[^}]+\}' | sort)
-              target_value=$(jq -r "getpath($(echo "$key" | jq -R 'split(".")'))" "$file" 2>/dev/null)
-              target_vars=$(echo "$target_value" | grep -oP '\{[^}]+\}' | sort)
-
-              if [ "$source_vars" != "$target_vars" ] && [ -n "$source_vars" ]; then
-                echo "::warning::$locale/$key: variable mismatch (source: $source_vars, target: $target_vars)"
-              fi
-            done
-          done
+          if [ "$FAILED" = true ]; then exit 1; fi
 ```
 
 ### GitLab CI — Auto-translate
-
-Create `.gitlab-ci.yml` translation stage:
 
 ```yaml
 translate:
@@ -151,10 +139,10 @@ translate:
   image: curlimages/curl:latest
   only:
     changes:
-      - messages/en.json
+      - messages/en.json  # ← Adjust
   script:
     - |
-      TARGET_LANGS="de fr es"
+      TARGET_LANGS="de fr es"  # ← Adjust
       for lang in $TARGET_LANGS; do
         curl -s -X POST https://api.flixu.ai/v1/translate/batch \
           -H "Authorization: Bearer $FLIXU_API_KEY" \
@@ -171,19 +159,8 @@ translate:
 
 ## Required secrets
 
-The developer needs to add the Flixu API key as a CI/CD secret:
-
-| Platform | Secret location |
-|----------|----------------|
-| **GitHub Actions** | Settings → Secrets → Actions → `FLIXU_API_KEY` |
-| **GitLab CI** | Settings → CI/CD → Variables → `FLIXU_API_KEY` |
-| **Vercel** | Settings → Environment Variables → `FLIXU_API_KEY` |
-
-## Customization points
-
-Ask the developer:
-1. **Source locale file path** — where is `en.json` or equivalent?
-2. **Target languages** — which locales to translate to?
-3. **Trigger** — on push to main? On every PR? Manual dispatch?
-4. **Quality threshold** — minimum coverage % to pass the gate?
-5. **PR strategy** — create separate PR or push to same branch?
+| Platform | Where to add `FLIXU_API_KEY` |
+|----------|------------------------------|
+| **GitHub Actions** | Settings → Secrets and variables → Actions |
+| **GitLab CI** | Settings → CI/CD → Variables (masked) |
+| **Vercel** | Settings → Environment Variables |

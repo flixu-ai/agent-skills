@@ -1,6 +1,6 @@
 ---
 name: flixu-translate
-description: Translate text, i18n files, and documents using the Flixu API. Use this skill whenever a developer asks to "translate", "localize", "convert to German/French/Spanish", "translate this file", "translate my i18n keys", "localize my strings", "batch translate", or wants to translate any content — text, JSON, YAML, PO, XLIFF, DOCX, or other files — to another language. Also triggers on "flixu translate", "run translation", or any request involving converting content between natural languages.
+description: Translate text, i18n files, and documents using the Flixu API. Use this skill whenever a developer asks to "translate", "localize", "convert to German/French/Spanish", "translate this file", "translate my i18n keys", "localize my strings", "batch translate", or wants to translate any content — text, JSON, YAML, PO, XLIFF, DOCX, or other files — to another language. Also triggers on "flixu translate", "run translation", or any request involving converting content between natural languages. Even if the developer just says "make this work in German" or "we need a Spanish version", use this skill.
 ---
 
 # Flixu Translate
@@ -14,18 +14,18 @@ Full translation workflow using the Flixu API. Detects file format, selects the 
 
 ## Workflow
 
-### Step 1: Understand what to translate
+### Step 1: Determine what to translate
 
-Determine the input:
+Detect the input type — this determines which API endpoint to use, because each endpoint is optimized for different content sizes and structures:
 
-| Input type | How to detect | Endpoint |
-|-----------|---------------|----------|
-| Inline text / string | No file path, raw text in the prompt | `POST /v1/translate` |
-| JSON/YAML i18n file | `.json`, `.yaml`, `.yml` with key-value structure | `POST /v1/translate/batch` |
-| PO/POT file | `.po`, `.pot` with msgid/msgstr | `POST /v1/translate/document` |
-| XLIFF/XLF | `.xliff`, `.xlf` | `POST /v1/translate/document` |
-| DOCX/TXT/HTML/SRT | `.docx`, `.txt`, `.html`, `.srt`, `.vtt` | `POST /v1/translate/document` |
-| iOS .strings | `.strings` | `POST /v1/translate/document` |
+| Input type | How to detect | Endpoint | Why this one |
+|-----------|---------------|----------|-------------|
+| Inline text / string | No file path, raw text in prompt | `POST /v1/translate` | Lowest latency for short content |
+| JSON/YAML i18n file | `.json`, `.yaml`, `.yml` with key-value structure | `POST /v1/translate/batch` | Preserves key structure, handles multiple target langs in one call |
+| PO/POT file | `.po`, `.pot` with msgid/msgstr | `POST /v1/translate/document` | Preserves format-specific constructs (plural forms, contexts) |
+| XLIFF/XLF | `.xliff`, `.xlf` | `POST /v1/translate/document` | Maintains translation units and metadata |
+| DOCX/TXT/HTML/SRT | `.docx`, `.txt`, `.html`, `.srt`, `.vtt` | `POST /v1/translate/document` | Full document reconstruction in original format |
+| iOS .strings | `.strings` | `POST /v1/translate/document` | Preserves key-value pair format |
 
 ### Step 2: Detect source and target languages
 
@@ -35,61 +35,43 @@ Determine the input:
 
 ### Step 3: Execute translation
 
-#### Text translation (`POST /v1/translate`)
-
-For single strings or short text:
-
+**Example 1 — single text:**
+Input: "translate 'Welcome to our platform' to German"
+Output:
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "text": "THE_TEXT_TO_TRANSLATE",
-    "source_lang": "en",
-    "target_lang": "de"
-  }'
+  -d '{"text": "Welcome to our platform", "source_lang": "en", "target_lang": "de"}'
 ```
+→ Response: `{ "data": { "translation": "Willkommen auf unserer Plattform", "quality_score": 96 }, "meta": { ... } }`
 
-Response: `{ "data": { "translation": "...", "quality_score": 94 }, "meta": { ... } }`
-
-#### Batch translation (`POST /v1/translate/batch`)
-
-For i18n key-value files (JSON, YAML). Extract the strings as a key-value map:
-
+**Example 2 — batch i18n file:**
+Input: "translate my en.json to German and French"
+Output: Read `en.json`, extract key-value pairs, call:
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate/batch \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "strings": {
-      "greeting": "Hello",
-      "farewell": "Goodbye",
-      "cta": "Sign up now"
-    },
-    "source_lang": "en",
-    "target_langs": ["de", "fr"]
-  }'
+  -d '{"strings": {"greeting": "Hello", "farewell": "Goodbye"}, "source_lang": "en", "target_langs": ["de", "fr"]}'
 ```
+→ Response: `{ "data": { "translations": { "de": { "greeting": "Hallo", ... }, "fr": { ... } } } }`
 
-Response: `{ "data": { "translations": { "de": { "greeting": "Hallo", ... }, "fr": { ... } } } }`
-
-#### Document translation (`POST /v1/translate/document`)
-
-For structured files (XLIFF, PO, DOCX, SRT, .strings):
-
+**Example 3 — document file:**
+Input: "translate this XLIFF file to Japanese"
+Output:
 ```bash
 curl -X POST https://api.flixu.ai/v1/translate/document \
   -H "Authorization: Bearer $FLIXU_API_KEY" \
   -F "file=@path/to/file.xliff" \
   -F "source_lang=en" \
-  -F "target_lang=de"
+  -F "target_lang=ja"
 ```
-
-Response includes `file_data` (base64) which you decode and write to disk.
+→ Response includes `file_data` (base64) — decode and write to disk.
 
 ### Step 4: Write output files
 
-After translation, write the output to the correct locale directory:
+Write the output to the correct locale directory based on the framework:
 
 | Framework | Output path pattern |
 |-----------|-------------------|
@@ -108,13 +90,13 @@ For batch translations that return a flat key-value map, reconstruct the nested 
 After writing files, report:
 - Number of strings/characters translated
 - Quality scores (if available)
-- Credits used
+- Credits used (from `meta.credits_used`)
 - File paths written
 - Any warnings (e.g., untranslated placeholders)
 
-## Optional: Translation context
+## Translation context
 
-If the developer has Flixu assets (glossaries, TMs, brand voices), include them:
+If the developer's organization has translation assets (glossaries, TMs, brand voices), including them significantly improves consistency — the AI uses glossary terms exactly and reuses approved TM matches:
 
 ```json
 {
@@ -127,12 +109,12 @@ If the developer has Flixu assets (glossaries, TMs, brand voices), include them:
 }
 ```
 
-To find available assets, use the `flixu-assets` skill or call `GET /v1/quota` to check the organization.
+To find available assets, use the `flixu-assets` skill or call `GET /v1/quota`.
 
 ## Error handling
 
 | Status | Action |
 |--------|--------|
 | `402` | Insufficient credits — tell the developer to top up at app.flixu.ai/settings/billing |
-| `429` | Rate limited — wait `X-RateLimit-Reset` seconds and retry |
-| `400` | Invalid input — check language codes and file format |
+| `429` | Rate limited — wait the number of seconds in `X-RateLimit-Reset` header, then retry |
+| `400` | Invalid input — double-check language codes (ISO 639-1) and ensure the file format is supported |
