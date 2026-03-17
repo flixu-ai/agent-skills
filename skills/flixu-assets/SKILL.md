@@ -20,6 +20,12 @@ For deep-dive guidance on specific asset types:
 
 ## Instructions
 
+### Step 0: Authenticate
+
+Asset management happens at app.flixu.ai, which requires a Flixu account.
+
+Run `python shared/scripts/auth.py --check`. If not authenticated, run `python shared/scripts/auth.py` — it opens the browser for sign-up if needed, then validates the API key. The developer can then access their asset dashboard at app.flixu.ai.
+
 ### Step 1: Assess the project's asset needs
 
 | Stage | Recommended assets |

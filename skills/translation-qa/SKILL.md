@@ -18,6 +18,12 @@ Scan a codebase for localization issues: missing translations, duplicate keys, i
 
 ## Instructions
 
+### Step 0: Authenticate (optional)
+
+Steps 1-4 work fully offline. Step 5 (API quality analysis) requires a `FLIXU_API_KEY`.
+
+Run `python shared/scripts/auth.py --check`. If not authenticated and the developer wants quality analysis, run `python shared/scripts/auth.py` to start the interactive login flow.
+
 ### Step 1: Detect i18n setup
 
 Identify the framework and locale file locations:

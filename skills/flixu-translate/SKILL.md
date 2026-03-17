@@ -12,17 +12,24 @@ metadata:
 
 Full translation workflow using the Flixu API. Detects file format, selects the correct endpoint, manages translation context, and writes output files to the correct locale directories.
 
-## Prerequisites
-
-- `FLIXU_API_KEY` environment variable set
-- API key needs the `translate` scope
-
 ## Bundled tools
 
 - **`scripts/translate.py`** — Translates JSON locale files directly. Usage: `python scripts/translate.py messages/en.json "de,fr,es"`. Handles nested JSON flattening/unflattening automatically.
 - **`references/formats.md`** — Details on what each file format preserves (XLIFF metadata, PO plurals, SRT timestamps).
 
 ## Instructions
+
+### Step 0: Authenticate
+
+Run `python shared/scripts/auth.py --check` to verify authentication.
+
+If it exits with code 1 (not authenticated), run `python shared/scripts/auth.py` to start the interactive login:
+1. Opens `app.flixu.ai/sign-up` if the developer has no account
+2. Opens `app.flixu.ai/settings/api-keys` to create/copy an API key
+3. Validates the key via `GET /v1/quota`
+4. Stores credentials in `~/.flixu/credentials`
+
+Expected output: `✓ Authenticated` with plan and credit info.
 
 ### Step 1: Determine what to translate
 

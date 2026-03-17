@@ -18,6 +18,12 @@ Generate CI/CD pipeline configurations that automatically translate new or chang
 
 ## Instructions
 
+### Step 0: Authenticate
+
+The workflow file can be generated without a key, but the CI runtime needs `FLIXU_API_KEY` as a repository secret.
+
+Run `python shared/scripts/auth.py --check`. If not authenticated, run `python shared/scripts/auth.py` — the login flow validates the key and shows the plan/credits. The developer can then add this key as a CI secret.
+
 ### Step 1: Gather requirements
 
 Ask the developer:

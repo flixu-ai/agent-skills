@@ -21,6 +21,12 @@ Migrate from another translation provider to Flixu. Audits the existing setup, m
 
 ## Instructions
 
+### Step 0: Authenticate (needed for Step 6 verification)
+
+Run `python shared/scripts/auth.py --check`. If not authenticated, run `python shared/scripts/auth.py` — it opens the browser for sign-up and API key creation, then stores credentials in `~/.flixu/credentials`.
+
+Steps 1-5 work without authentication. Step 6 (verify migration with test translations) requires a valid key.
+
 ### Step 1: Audit existing setup
 
 Run `scripts/detect_provider.py` in the project root.
